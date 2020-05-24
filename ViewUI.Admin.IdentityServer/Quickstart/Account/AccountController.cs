@@ -14,9 +14,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using ViewUI.Admin.IdentityServer.Data.UserStore;
 
 namespace ViewUI.Admin.IdentityServer
 {
@@ -29,27 +31,29 @@ namespace ViewUI.Admin.IdentityServer
     [AllowAnonymous]
     public class AccountController : Controller
     {
-        private readonly TestUserStore _users;
+        //private readonly TestUserStore _users;
         private readonly IIdentityServerInteractionService _interaction;
         private readonly IClientStore _clientStore;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
         private readonly IEventService _events;
+        private readonly UserContext _context;
 
         public AccountController(
             IIdentityServerInteractionService interaction,
             IClientStore clientStore,
             IAuthenticationSchemeProvider schemeProvider,
             IEventService events,
-            TestUserStore users = null)
+            UserContext context)
         {
             // if the TestUserStore is not in DI, then we'll just use the global users collection
             // this is where you would plug in your own custom identity management library (e.g. ASP.NET Identity)
-            _users = users ?? new TestUserStore(TestUsers.Users);
+            //_users = users ?? new TestUserStore(TestUsers.Users);
 
             _interaction = interaction;
             _clientStore = clientStore;
             _schemeProvider = schemeProvider;
             _events = events;
+            _context = context;
         }
 
         /// <summary>
@@ -109,10 +113,13 @@ namespace ViewUI.Admin.IdentityServer
 
             if (ModelState.IsValid)
             {
+                var user =  _context.Users.Where(u => u.Username == model.Username).Include(u => u.Claims).SingleOrDefault();
+                //var _ = user.Claims;
+                //var claims =  _context.Claims.ToArrayAsync();
+                //var temp = claims.Where(c => c.UserId == user.UserId);
                 // validate username/password against in-memory store
-                if (_users.ValidateCredentials(model.Username, model.Password))
+                if (user.Password == model.Password.Sha256())
                 {
-                    var user = _users.FindByUsername(model.Username);
                     await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId, user.Username, clientId: context?.ClientId));
 
                     // only set explicit expiration here if user chooses "remember me". 

@@ -8,7 +8,7 @@ namespace ViewUI.Admin.IdentityServer.Data.UserStore
 {
     public class User
     {
-        [Key]
+        //[Key]
         public Guid Id { get; set; }
         //
         // 摘要:
@@ -46,7 +46,7 @@ namespace ViewUI.Admin.IdentityServer.Data.UserStore
         //
         // 摘要:
         //     Gets or sets the claims.
-        public virtual ICollection<Claim> Claims { get; set; }
+        public List<Claim> Claims { get; set; }
 
     }
 }

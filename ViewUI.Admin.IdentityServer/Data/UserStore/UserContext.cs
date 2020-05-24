@@ -24,7 +24,7 @@ namespace ViewUI.Admin.IdentityServer.Data.UserStore
                 .HasOne(c => c.User)
                 .WithMany(u => u.Claims)
                 .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

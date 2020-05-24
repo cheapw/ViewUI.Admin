@@ -10,8 +10,8 @@ using ViewUI.Admin.IdentityServer.Data.UserStore;
 namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
 {
     [DbContext(typeof(UserContext))]
-    [Migration("20200523075030_InitialUserStoreMigration")]
-    partial class InitialUserStoreMigration
+    [Migration("20200524023032_test2")]
+    partial class test2
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -32,12 +32,11 @@ namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
                         .HasMaxLength(32);
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasMaxLength(32);
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Value")
-                        .HasColumnType("nvarchar(32)")
-                        .HasMaxLength(32);
+                        .HasColumnType("nvarchar(100)")
+                        .HasMaxLength(100);
 
                     b.HasKey("Id");
 
@@ -82,7 +81,7 @@ namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
                     b.HasOne("ViewUI.Admin.IdentityServer.Data.UserStore.User", "User")
                         .WithMany("Claims")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

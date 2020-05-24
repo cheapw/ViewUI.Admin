@@ -31,17 +31,20 @@ namespace ViewUI.Admin.IdentityServer
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
             const string connectionString = @"Data Source=(LocalDb)\MSSQLLocalDB;database=IdentityServer4.Quickstart.EntityFramework-3.0.0;trusted_connection=yes;";
 
-            services.AddDbContext<UserContext>(options => options.UseSqlServer(connectionString));
-
+            services.AddDbContext<UserContext>(options =>
+            {
+                options.UseSqlServer(connectionString);
+            });
+            services.AddScoped<UserStore>();
             //var builder = services.AddIdentityServer()
             //    .AddInMemoryIdentityResources(Config.Ids)
             //    .AddInMemoryApiResources(Config.Apis)
-            //    .AddInMemoryClients(Config.Clients)
+            //    .AddInMemoryClient0s(Config.Clients)
             //    .AddTestUsers(TestUsers.Users);
             //builder.AddDeveloperSigningCredential();
 
             services.AddIdentityServer()
-                .AddTestUsers(TestUsers.Users)
+                //.AddTestUsers(TestUsers.Users)
                 //.AddSigningCredential(null)
                 .AddConfigurationStore(options =>
                 {
@@ -53,6 +56,8 @@ namespace ViewUI.Admin.IdentityServer
                     options.ConfigureDbContext = b => b.UseSqlServer(connectionString,
                         sql => sql.MigrationsAssembly(migrationsAssembly));
                 })
+                .AddResourceOwnerValidator<UserResourceOwnerPasswordValidator>()
+                .AddProfileService<UserProfileService>()
                 .AddDeveloperSigningCredential();
         }
 
@@ -114,6 +119,7 @@ namespace ViewUI.Admin.IdentityServer
                 }
 
                 var userContext = serviceScope.ServiceProvider.GetRequiredService<UserContext>();
+                userContext.Database.Migrate();
                 if (!userContext.Users.Any())
                 {
                     var guid1 = Guid.NewGuid();
@@ -124,7 +130,7 @@ namespace ViewUI.Admin.IdentityServer
                         Username = "Alice",
                         Password = "Alice".Sha256(),
                         SubjectId = guid1.ToString(),
-                        Claims = new Collection<Claim>()
+                        Claims = new List<Claim>()
                         {
                             new Claim
                             {
@@ -167,6 +173,13 @@ namespace ViewUI.Admin.IdentityServer
                                 Type = JwtClaimTypes.WebSite,
                                 Value = "http://alice.com",
                                 UserId = guid1
+                            },
+                            new Claim
+                            {
+                                Id = Guid.NewGuid(),
+                                Type = "power",
+                                Value = "[\"admin\"]",
+                                UserId = guid1
                             }
                         }
                     };
@@ -178,7 +191,7 @@ namespace ViewUI.Admin.IdentityServer
                         Username = "bob",
                         Password = "bob".Sha256(),
                         SubjectId = guid2.ToString(),
-                        Claims = new Collection<Claim>()
+                        Claims = new List<Claim>()
                         {
                             new Claim
                             {
@@ -220,6 +233,20 @@ namespace ViewUI.Admin.IdentityServer
                                 Id = Guid.NewGuid(),
                                 Type = JwtClaimTypes.WebSite,
                                 Value = "http://bob.com",
+                                UserId = guid2
+                            },
+                            new Claim
+                            {
+                                Id = Guid.NewGuid(),
+                                Type = "location",
+                                Value = "somewhere",
+                                UserId = guid2
+                            },
+                            new Claim
+                            {
+                                Id = Guid.NewGuid(),
+                                Type = "power",
+                                Value = "[\"super_admin\", \"admin\"]",
                                 UserId = guid2
                             }
                         }

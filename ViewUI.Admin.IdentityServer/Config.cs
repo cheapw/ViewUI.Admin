@@ -2,18 +2,22 @@
 using IdentityServer4.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace ViewUI.Admin.IdentityServer
 {
-    public class Config
+    public static class Config
     {
         public static IEnumerable<IdentityResource> Ids =>
             new List<IdentityResource>
             {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
+                new IdentityResources.Email(),
+                new IdentityResource{ Name = "location", DisplayName="location", Emphasize=true, ShowInDiscoveryDocument= true,UserClaims = new Collection<string>(new List<string>{"location"}) },
+                new IdentityResource{ Name = "power", DisplayName="power", Emphasize=true, ShowInDiscoveryDocument= true,UserClaims = new Collection<string>(new List<string>{"power"}) }
             };
         public static IEnumerable<ApiResource> Apis =>
             new List<ApiResource>
@@ -57,6 +61,9 @@ namespace ViewUI.Admin.IdentityServer
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "location",
+                        "power",
                         "api1"
                     }
                 },

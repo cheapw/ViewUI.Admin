@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
 {
-    public partial class InitialUserStoreMigration : Migration
+    public partial class test2 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -29,9 +29,9 @@ namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
                 columns: table => new
                 {
                     Id = table.Column<Guid>(nullable: false),
-                    UserId = table.Column<Guid>(maxLength: 32, nullable: false),
+                    UserId = table.Column<Guid>(nullable: false),
                     Type = table.Column<string>(maxLength: 32, nullable: true),
-                    Value = table.Column<string>(maxLength: 32, nullable: true)
+                    Value = table.Column<string>(maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -41,7 +41,7 @@ namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(

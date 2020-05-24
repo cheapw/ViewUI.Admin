@@ -79,7 +79,7 @@ namespace ViewUI.Admin.IdentityServer.Data.Migrations.IdentityServer.UserStore
                     b.HasOne("ViewUI.Admin.IdentityServer.Data.UserStore.User", "User")
                         .WithMany("Claims")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618
