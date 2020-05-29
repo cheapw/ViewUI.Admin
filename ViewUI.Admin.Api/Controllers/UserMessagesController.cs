@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ViewUI.Admin.Api.Entities;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ViewUI.Admin.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserMessagesController : ControllerBase
     {
         private readonly AdminApiContext _context;

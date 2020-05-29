@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ViewUI.Admin.Api.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace ViewUI.Admin.Api
 {
@@ -36,6 +37,15 @@ namespace ViewUI.Admin.Api
                 options.UseSqlServer(connectionString);
             });
 
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddIdentityServerAuthentication(options =>
+                {
+                    options.Authority = "http://localhost:5000";
+                    options.ApiName = "api1";
+                    options.RequireHttpsMetadata = false;
+                    options.JwtValidationClockSkew = TimeSpan.FromSeconds(5);
+                });
+            services.AddAuthorization();
             services.AddCors(options =>
             {
                 // this defines a CORS policy called "default"
@@ -63,7 +73,7 @@ namespace ViewUI.Admin.Api
             app.UseRouting();
 
             app.UseCors("default");
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
