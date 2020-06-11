@@ -13,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using ViewUI.Admin.Api.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ViewUI.Admin.Api.UserStore;
+using ViewUI.Admin.Api.Services;
 
 namespace ViewUI.Admin.Api
 {
@@ -29,6 +31,16 @@ namespace ViewUI.Admin.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+
+            // 注册验证码的全局缓存
+            services.AddSingleton<IVerificationCodeService, VerificationCodeService>();
+
+            const string userConnStr = @"Data Source=(LocalDb)\MSSQLLocalDB;database=IdentityServer4.Quickstart.EntityFramework-3.0.0;trusted_connection=yes;";
+
+            services.AddDbContext<UserContext>(options =>
+            {
+                options.UseSqlServer(userConnStr);
+            });
 
             const string connectionString = @"Data Source=(LocalDb)\MSSQLLocalDB;database=ViewUI.Admin.Api;trusted_connection=yes;";
 
