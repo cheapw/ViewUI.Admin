@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.RegularExpressions;
@@ -7,6 +8,8 @@ using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.EntityFrameworkCore;
 using MimeKit;
 using ViewUI.Admin.Api.Helper;
 using ViewUI.Admin.Api.Services;
@@ -24,6 +27,11 @@ namespace ViewUI.Admin.Api.Controllers
         {
             _context = context;
             _codeService = codeService;
+            // 添加测试数据
+            //if (!_codeService.IsExist("cheapw@outlook.com"))
+            //{
+            //    _codeService.Add("cheapw@outlook.com", "123123");
+            //}
         }
 
         // POST: api/Register
@@ -70,7 +78,7 @@ namespace ViewUI.Admin.Api.Controllers
                             if(_codeService.VerifyInfos.SingleOrDefault(c=>c.Email == email && c.VerificationCode == codeClaim.Value) != null)
                             {
                                 // 从缓存中移除email和验证码信息，从请求的user对象中移除包含验证码的claim
-                                _codeService.Remove(email);
+                                _codeService.Remove(email, "register");
                                 user.Claims.Remove(codeClaim);
 
                                 _context.Users.Add(user);
@@ -104,28 +112,95 @@ namespace ViewUI.Admin.Api.Controllers
                 return BadRequest("email not found in request body");
             }
         }
+        // POST: api/Register/resetpassword
+        [HttpPost("resetpassword")]
+        public async Task<ActionResult<string>> ResetPassword([FromForm] string username, [FromForm] string password, [FromForm] string email, [FromForm] string code)
+        {
+            var user = await _context.Users.Include(u=>u.Claims).SingleOrDefaultAsync(u => u.Username == username);
+            
+            if(user == null)
+            {
+                return BadRequest("username doesn't exist");
+            }
+
+            if(user.Claims.SingleOrDefault(c=>c.Type=="email" && c.Value == email) == null)
+            {
+                return BadRequest("email don't match to the account");
+            }
+
+            if(user.Password == password)
+            {
+                return BadRequest("duplicate password");
+            }
+
+            // 在检查验证码之前清理过期的验证码
+            _codeService.RemoveOverdue();
+
+            if (_codeService.VerifyInfos.SingleOrDefault(v=>v.Email==email && v.VerificationCode == code) == null)
+            {
+                return BadRequest("email or verification code error");
+            }
+
+            // 从缓存中移除email和验证码信息
+            _codeService.Remove(email, "resetpassword");
+
+            user.Password = password;
+            
+            _context.Entry(user).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return BadRequest("server internal error");
+                throw;
+            }
+
+            return NoContent();
+        }
         // POST: api/Register/sendmail
         [HttpPost("sendmail")]
-        public async Task<ActionResult<string>> SendMail([FromForm] string email)
+        public async Task<ActionResult<string>> SendMail([FromForm] string email, [FromForm] string title, [FromForm] string type, [FromForm] string username)
         {
             
             if (string.IsNullOrWhiteSpace(email) && !email.Contains('@'))
             {
                 return BadRequest();
             }
-            
+
+            if (type == "resetpassword")
+            {
+                var user = await _context.Users.Include(u => u.Claims).SingleOrDefaultAsync(u => u.Username == username);
+
+                if (user == null)
+                {
+                    return BadRequest("username doesn't exist");
+                }
+
+                if (user.Claims.SingleOrDefault(c => c.Type == "email" && c.Value == email) == null)
+                {
+                    return BadRequest("email don't match to the account");
+                }
+            }
 
             // 移除超过10分钟的验证码
             _codeService.RemoveOverdue();
 
             // 若当前邮箱十分钟内未申请过验证码
-            if (!_codeService.IsExist(email))
+            if (!_codeService.IsExist(email,type))
             {
-                AddOrUpdate(email, _codeService.Add);
+                // 生成随机验证码
+                string verificationCode = new Random().Next(0, 999999).ToString().PadLeft(6, '0');
+                // 向目标邮箱发送验证码
+                Send(email, verificationCode, title);
+                // 更新或添加全局缓存
+                _codeService.Add(email, verificationCode, type);
             }
             else
             {
-                var createTime = _codeService.GetCreateTime(email);
+                var createTime = _codeService.GetCreateTime(email,type);
                 if (createTime.HasValue)
                 {
                     // 一分钟之内申请过验证码
@@ -137,39 +212,45 @@ namespace ViewUI.Admin.Api.Controllers
                     else if (DateTime.Now - createTime.Value > TimeSpan.FromMinutes(1) &&
                         DateTime.Now - createTime.Value <= TimeSpan.FromMinutes(10))
                     {
-                        AddOrUpdate(email, _codeService.Update);
+                        //AddOrUpdate(email, _codeService.Update);
+                        // 生成随机验证码
+                        string verificationCode = new Random().Next(0, 999999).ToString().PadLeft(6, '0');
+                        // 向目标邮箱发送验证码
+                        Send(email, verificationCode, title);
+                        // 更新或添加全局缓存
+                        _codeService.Update(email, verificationCode, type);
                     }
                 }
             }
 
             return Ok("success");
 
-            void AddOrUpdate(string email, Func<string,string,bool> action)
-            {
-                // 生成随机验证码
-                string verificationCode = new Random().Next(0, 999999).ToString().PadLeft(6, '0');
-                // 向目标邮箱发送验证码
-                Send(email, verificationCode);
-                // 更新或添加全局缓存
-                //_codeService.Update(email, verificationCode);
-                action(email, verificationCode);
-            }
+            //void AddOrUpdate(string email, Func<string,string,bool> action)
+            //{
+            //    // 生成随机验证码
+            //    string verificationCode = new Random().Next(0, 999999).ToString().PadLeft(6, '0');
+            //    // 向目标邮箱发送验证码
+            //    Send(email, verificationCode, title);
+            //    // 更新或添加全局缓存
+            //    //_codeService.Update(email, verificationCode);
+            //    action(email, verificationCode);
+            //}
         }
 
-        private void Send(string email,string verificationCode)
+        private void Send(string email,string verificationCode, string title)
         {
             var name = email.Substring(0, email.IndexOf('@'));
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("xxx 服务团队", "cheapw13579@163.com"));
             message.To.Add(new MailboxAddress(name, email));
-            message.Subject = "ViewUI 注册验证";
+            message.Subject = $"ViewUI {title}验证";
 
             var builder = new BodyBuilder();
 
             builder.HtmlBody = string.Format("<h2>以下是您的验证码：</h2>" +
                 $"<h3>{ verificationCode }</h3>" +
                 @"<span>cheapw，您好！</span><br/>
-                <span>我们已收到来自您的验证码请求，请使用验证码完成最后的注册操作。</span><br/>
+                <span>我们已收到来自您的验证码请求，请使用验证码完成最后的"+ title + @"操作。</span><br/>
                 <span>请注意：该验证码将在10分钟后过期，请尽快验证！</span><br/><br/>
                 <span>希望您能享受这一刻！</span><br/>
                 <span>xxx服务团队</span><br/>

@@ -10,5 +10,6 @@ namespace ViewUI.Admin.Api.Models
         public string Email { get; set; }
         public string VerificationCode { get; set; }
         public DateTime CreateTime { get; set; }
+        public string Type { get; set; } = "register";
     }
 }

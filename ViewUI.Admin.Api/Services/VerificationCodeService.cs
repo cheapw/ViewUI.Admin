@@ -10,9 +10,9 @@ namespace ViewUI.Admin.Api.Services
     {
         public List<VerificationInfo> VerifyInfos { get; set; } = new List<VerificationInfo>();
 
-        public bool Add(string email, string code)
+        public bool Add(string email, string code, string type)
         {
-            if (IsExist(email))
+            if (IsExist(email,type))
             {
                 throw new Exception("试图添加已经存在的邮箱验证码信息");
             }
@@ -22,7 +22,8 @@ namespace ViewUI.Admin.Api.Services
                 {
                     Email = email,
                     VerificationCode = code,
-                    CreateTime = DateTime.Now
+                    CreateTime = DateTime.Now,
+                    Type = type
                 });
                 return true;
             }
@@ -32,9 +33,9 @@ namespace ViewUI.Admin.Api.Services
             }
         }
 
-        public DateTime? GetCreateTime(string email)
+        public DateTime? GetCreateTime(string email, string type)
         {
-            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email);
+            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email && v.Type == type);
             if (info == null)
             {
                 return null;
@@ -42,9 +43,9 @@ namespace ViewUI.Admin.Api.Services
             return info.CreateTime;
         }
 
-        public bool IsExist(string email)
+        public bool IsExist(string email, string type)
         {
-            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email);
+            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email && v.Type == type);
             if (info == null)
             {
                 return false;
@@ -52,13 +53,13 @@ namespace ViewUI.Admin.Api.Services
             return true;
         }
 
-        public bool Remove(string email)
+        public bool Remove(string email, string type)
         {
-            if (!IsExist(email))
+            if (!IsExist(email,type))
             {
                 throw new Exception("试图删除不存在的邮箱验证码信息");
             }
-            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email);
+            VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email && v.Type == type);
             return VerifyInfos.Remove(info);
         }
 
@@ -67,15 +68,15 @@ namespace ViewUI.Admin.Api.Services
             VerifyInfos.RemoveAll(v => DateTime.Now - v.CreateTime > TimeSpan.FromMinutes(10));
         }
 
-        public bool Update(string email, string code)
+        public bool Update(string email, string code, string type)
         {
-            if (!IsExist(email))
+            if (!IsExist(email, type))
             {
                 throw new Exception("试图更新不存在的邮箱验证码信息");
             }
             try
             {
-                VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email);
+                VerificationInfo info = VerifyInfos.FirstOrDefault(v => v.Email == email && v.Type == type);
                 info.VerificationCode = code;
                 info.CreateTime = DateTime.Now;
                 return true;

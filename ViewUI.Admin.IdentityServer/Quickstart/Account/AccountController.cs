@@ -118,7 +118,7 @@ namespace ViewUI.Admin.IdentityServer
                 //var claims =  _context.Claims.ToArrayAsync();
                 //var temp = claims.Where(c => c.UserId == user.UserId);
                 // validate username/password against in-memory store
-                if (user.Password == model.Password.Sha256())
+                if (user?.Password == model.Password.Sha256())
                 {
                     await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId, user.Username, clientId: context?.ClientId));
 
